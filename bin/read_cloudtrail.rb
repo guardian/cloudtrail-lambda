@@ -8,72 +8,12 @@ require 'trollop'
 require 'logger'
 require 'aws-sdk-resources'
 require 'zlib'
+require 'lib/elastic_indexer'
 
 INDEXNAME='cloudtrail'
 TYPENAME="event"
 $logger=Logger.new(STDOUT)
 
-class ElasticIndexer
-  def initialize(client: nil,autocommit: 0)
-    @records = []
-    @autocommit_threshold = autocommit
-    if client
-      @client=client
-    else
-      @client=Elasticsearch::Client.new()
-    end
-  end #def initialize
-
-  def flatten_hash(h)
-    #print "flatten_hash got:"
-    #ap(h)
-    newhash={}
-    h.each do |k,v|
-      if v.is_a?(Hash)
-        v.each {|subkey,subval|
-          if subval.is_a?(Hash)
-            newhash[subkey]=flatten_hash(subval)
-          else
-            newhash[subkey]=subval
-          end
-        }
-        #h.delete(k)
-      else
-        newhash[k]=v
-      end
-    end
-    #print "flatten_hash returned:"
-    #ap(h)
-    return h
-  end #def flatten.hash
-  
-  def add_record(rec)
-    #$logger.info("adding record")
-    if rec.is_a?(Hash)
-      @records << self.flatten_hash(rec)
-    else
-      @records << rec
-    end
-    if @records.length > @autocommit_threshold
-      self.commit
-    end
-  end #def add_record
-  
-  def commit
-    actions = []
-    $logger.info("Committing to index #{INDEXNAME}...")
-    @records.each do |rec|
-      actions << { index: {
-        _index: INDEXNAME,
-        _type: TYPENAME,
-        data: rec
-      }}
-    end
-    @client.bulk(body: actions)
-    @records = []
-  end #def commit
-  
-end #class ElasticIndexer
 
 def find_numerics(rec)
   rtn=rec
@@ -181,43 +121,5 @@ if $opts[:queueurl]==nil
   $logger.error("You need to specify a queue to listen to using --queueurl")
   exit(1)
 end
-
-
-
-#puts "Reading #{ARGV[0]}..."
-#data={}
-#File.open(ARGV[0]) do |f|
-#  data=JSON.parse(f.read())
-#end
-
-c=Aws::SQS::Client.new(region: $opts.region)
-
-Aws::SQS::QueuePoller.new($opts[:queueurl], {:client=>c}).poll do |msg|
-  n=0
-  begin
-    #puts msg
-    $logger.debug("Got message #{msg.body}")
-    content=JSON.parse(msg.body)
-    
-    message_content = JSON.parse(content['Message'])
-    
-    message_content['s3ObjectKey'].each {|object_key|
-      n+=download_and_process(message_content['s3Bucket'],object_key,indexer: indexer)
-    }
-  rescue StandardError=>e
-    $logger.error(e)
-    $logger.error(e.traceback)
-  end
-  indexer.commit
-  puts "Done. Processed #{n} records."
-end
-
-#n=0
-#data['Records'].each {|rec|
-#  processed_rec = reformat_event(rec)
-#  indexer.add_record(processed_rec)
-#  ap(processed_rec)
-#  n+=1
-#}
 
 
