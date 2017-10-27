@@ -1,7 +1,13 @@
+require 'logger'
+require 'elasticsearch'
+
 class ElasticIndexer
-  def initialize(client: nil,autocommit: 0)
+  def initialize(client: nil,autocommit: 0, indexname: "cloudtrail", typename: "type", logger: nil)
     @records = []
     @autocommit_threshold = autocommit
+    @indexname = indexname
+    @typename = typename
+    @logger = logger if(logger!=nil) else Logger.new(STDOUT)
     if client
       @client=client
     else
@@ -10,8 +16,6 @@ class ElasticIndexer
   end #def initialize
 
   def flatten_hash(h)
-    #print "flatten_hash got:"
-    #ap(h)
     newhash={}
     h.each do |k,v|
       if v.is_a?(Hash)
@@ -27,8 +31,6 @@ class ElasticIndexer
         newhash[k]=v
       end
     end
-    #print "flatten_hash returned:"
-    #ap(h)
     return h
   end #def flatten.hash
 
@@ -45,15 +47,18 @@ class ElasticIndexer
   end #def add_record
 
   def commit
-    actions = []
-    $logger.info("Committing to index #{INDEXNAME}...")
-    @records.each do |rec|
-      actions << { index: {
-          _index: INDEXNAME,
-          _type: TYPENAME,
-          data: rec
-      }}
+    $logger.info("Committing to index #{@indexname}...")
+
+    actions = @records.map do |rec|
+      {
+          index: {
+              _index: @indexname,
+              _type: @typename,
+              data: rec
+          }
+      }
     end
+
     @client.bulk(body: actions)
     @records = []
   end #def commit
