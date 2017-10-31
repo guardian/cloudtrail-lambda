@@ -8,11 +8,25 @@ scalaVersion := "2.12.3"
 
 // https://mvnrepository.com/artifact/org.jruby/jruby-complete
 libraryDependencies += "org.jruby" % "jruby-complete" % "9.1.13.0"
-// https://mvnrepository.com/artifact/bsf/bsf
-libraryDependencies += "bsf" % "bsf" % "2.4.0"
+
 // https://mvnrepository.com/artifact/commons-logging/commons-logging
 libraryDependencies += "commons-logging" % "commons-logging" % "1.2"
 
+libraryDependencies ++= Seq(
+  "com.amazonaws" % "aws-lambda-java-core" % "1.1.0",
+  "com.amazonaws" % "aws-lambda-java-events" % "1.3.0",
+  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.208",
+  "com.amazonaws" % "aws-java-sdk-sns" % "1.11.210"
+)
+
+//logging
+libraryDependencies ++= Seq(
+  "org.apache.logging.log4j" % "log4j-api" % "2.9.1",
+  "org.apache.logging.log4j" % "log4j-core" % "2.9.1",
+  "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0",
+  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % "2.7.3",
+  "com.fasterxml.jackson.core" % "jackson-databind" % "2.5.4"
+)
 
 debianPackageDependencies := Seq("openjdk-8-jre-headless")
 serverLoading in Debian := Some(ServerLoader.Systemd)

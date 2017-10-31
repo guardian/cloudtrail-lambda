@@ -1,24 +1,29 @@
 #!/usr/bin/env ruby
 $LOAD_PATH.unshift "../gem_home/gems/bundler-1.15.4"
+$LOAD_PATH.unshift "./lib"
+
+#require 'lib/elastic_indexer'
+
 #
 # require 'elasticsearch'
 # require 'json'
 # require 'awesome_print'
 # require 'date'
-# require 'trollop'
 # require 'logger'
 # require 'aws-sdk-resources'
-# require 'zlib'
-# require 'lib/elastic_indexer'
+require 'zlib'
 require 'rubygems'
 require 'bundler/setup'
-require 'Logger'
-#require 'nokogiri'
-
 Bundler.setup(:default)
 
+require 'Logger'
+require 'elasticsearch'
+require 'awesome_print'
+#require 'nokogiri'
+
+
 INDEXNAME='cloudtrail'
-TYPENAME="event"
+TYPENAME='event'
 $logger=Logger.new(STDOUT)
 
 
@@ -93,40 +98,38 @@ def download_and_process(b,object_key, indexer: nil)
 end
 
 #START MAIN
-$opts = Trollop::options do
-  opt :elasticsearch, "Location of elasticsearch cluster to communicate with. Specify multiple hosts separated by commas.", :type=>:string, :default=>"localhost"
-  opt :queueurl, "URL of the Amazon SQS queue to listen to", :type=>:string
-  opt :region, "AWS region to operate in", :type=>:string, :default=>"eu-west-1"
-  opt :reindex, "Perform a complete re-index based on the s3 bucket listed", :type=>:boolean
-  opt :bucket, "S3 bucket to re-index from, if performing a re-index", :type=>:string
-end
 
-ets = Elasticsearch::Client.new(hosts: $opts.elasticsearch.split(/,\s*/),log: true)
-ets.cluster.health
-indexer = ElasticIndexer.new(client: ets,autocommit: 500)
+ets = Elasticsearch::Client.new(hosts: "localhost:9200",log: true)
+#ets.cluster.health
+#indexer = ElasticIndexer.new(client: ets,autocommit: 500)
 
-if $opts[:reindex]
-  $logger.info("Attempting to perform a full re-index from #{$opts.bucket}")
-  s3 = Aws::S3::Client.new(region: $opts.region)
-  b = Aws::S3::Bucket.new($opts.bucket, client: s3)
-  if not b.exists?
-    raise ArgumentError,"The bucket #{bucket} does not exist."
-  end
-  
-  n=0
-  b.objects.each {|obj|
-    begin
-      n+=download_and_process(obj.bucket_name,obj.key,indexer: indexer)
-    rescue StandardError=>e
-      $logger.warn(e)
-    end
-  }
-  $logger.info("Re-index complete, re-indexed #{n} records")
-end
+$records.each {|record|
+  ap record
+}
 
-if $opts[:queueurl]==nil
-  $logger.error("You need to specify a queue to listen to using --queueurl")
-  exit(1)
-end
+#
+# if $opts[:reindex]
+#   $logger.info("Attempting to perform a full re-index from #{$opts.bucket}")
+#   s3 = Aws::S3::Client.new(region: $opts.region)
+#   b = Aws::S3::Bucket.new($opts.bucket, client: s3)
+#   if not b.exists?
+#     raise ArgumentError,"The bucket #{bucket} does not exist."
+#   end
+#
+#   n=0
+#   b.objects.each {|obj|
+#     begin
+#       n+=download_and_process(obj.bucket_name,obj.key,indexer: indexer)
+#     rescue StandardError=>e
+#       $logger.warn(e)
+#     end
+#   }
+#   $logger.info("Re-index complete, re-indexed #{n} records")
+# end
+#
+# if $opts[:queueurl]==nil
+#   $logger.error("You need to specify a queue to listen to using --queueurl")
+#   exit(1)
+# end
 
 
