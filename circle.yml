@@ -1,0 +1,36 @@
+machine:
+  timezone: UTC
+  environment:
+    SBT_OPTS: "-Dfile.encoding=UTF8 -Xms512M -Xmx1024M -Xss1M -XX:+CMSClassUnloadingEnabled -XX:+UseCompressedOops -Dbuild.tag=\"$CIRCLE_TAG\" -Dbuild.number=$CIRCLE_BUILD_NUM -Dbuild.vcs.number=$CIRCLE_SHA1"
+    JRUBY: $HOME/.ivy2/cache/org.jruby/jruby-complete/bundles/jruby-complete-9.1.13.0.jar
+    RESOURCES: src/main/resources
+    GEM_HOME: ${RESOURCES}/gem_home
+    GEM_PATH: ${GEM_HOME}
+    BUNDLE_HOME: ${RESOURCES}/bundle
+  java:
+    version: oraclejdk8
+
+dependencies:
+  # Install specific version of sbt - See https://circleci.com/docs/language-scala/
+  pre:
+    - wget -q https://dl.bintray.com/sbt/debian/sbt-1.0.2.deb
+    - sudo dpkg -i sbt-1.0.2.deb
+  # Cache resolution-cache and streams for faster dependency resolution in sbt
+  # Cache node_modules and bower_components for faster client-side build
+  cache_directories:
+    - ~/.sbt
+    - ~/.ivy2
+  override:
+    - sbt test:compile
+    - mkdir -p ${GEM_HOME}
+    - java -jar $JRUBY -S gem install -i ${GEM_HOME} --no-rdoc --no-ri bundler
+    - java -jar $JRUBY ${GEM_HOME}/bin/bundle install --path=${BUNDLE_HOME} --binstubs
+test:
+  override:
+    - sbt test
+
+deployment:
+  riffraff_deploy:
+    branch: /.*/
+    commands:
+      - sbt riffRaffUpload

@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem elasticsearch
-gem awesome_print
-gem date
-gem aws_sdk, '>2.0'
+gem "elasticsearch", '>=5.0.4'
+gem "awesome_print", '>=1.8.0'
+gem "aws_sdk", '>=2.0'
+gem "rake", '>=10.4.2'
