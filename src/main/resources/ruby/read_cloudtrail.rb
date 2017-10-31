@@ -1,14 +1,21 @@
 #!/usr/bin/env ruby
+$LOAD_PATH.unshift "../gem_home/gems/bundler-1.15.4"
+#
+# require 'elasticsearch'
+# require 'json'
+# require 'awesome_print'
+# require 'date'
+# require 'trollop'
+# require 'logger'
+# require 'aws-sdk-resources'
+# require 'zlib'
+# require 'lib/elastic_indexer'
+require 'rubygems'
+require 'bundler/setup'
+require 'Logger'
+#require 'nokogiri'
 
-require 'elasticsearch'
-require 'json'
-require 'awesome_print'
-require 'date'
-require 'trollop'
-require 'logger'
-require 'aws-sdk-resources'
-require 'zlib'
-require 'lib/elastic_indexer'
+Bundler.setup(:default)
 
 INDEXNAME='cloudtrail'
 TYPENAME="event"
